@@ -6,7 +6,7 @@
 % Franco Pestilli and Sam Faber 
 
 % set up the path to the data 
-BASEDIR = '/N/dc2/projects/lifebid/HCP/Sam/matlab_code/pestillilab_projects/sam_faber/optic_radiation/mrtrix_track_between_rois/118730/';
+BASEDIR = '/N/dc2/projects/lifebid/HCP/Sam/matlab_code/wmp/mrtrix_track_between_rois/KK/'; %105115, 113619, 115320, 117122, 118730, HT, FP, JW, KK
 TRKDIR = fullfile(BASEDIR, 'mrtrix_results');
 
 
@@ -17,12 +17,13 @@ TRKDIR = fullfile(BASEDIR, 'mrtrix_results');
 % It was then saved (in mrDiffusion) as an updated version and then read in
 % again to be cleaned further.
 
+mrtrix_tck2pdb(fullfile(TRKDIR,'whole_brain_ORs_excluded.tck'),fullfile(TRKDIR,'whole_brain_ORs_excluded.pdb'))
 mrtrix_tck2pdb(fullfile(TRKDIR,'left_optic_radiation_PCSD.tck'),fullfile(TRKDIR,'left_optic_radiation_PCSD.pdb'))
+mrtrix_tck2pdb(fullfile(TRKDIR,'right_optic_radiation_PCSD.tck'),fullfile(TRKDIR,'right_optic_radiation_PCSD.pdb'))
+
 fg = fgRead(fullfile(TRKDIR, 'left_optic_radiation_PCSD.pdb'));
 fgWrite(fg, fullfile(TRKDIR,fg.name),'mat'); % load this into mrDiffusion for initial cleaning
 
-
-mrtrix_tck2pdb(fullfile(TRKDIR,'right_optic_radiation_PCSD.tck'),fullfile(TRKDIR,'right_optic_radiation_PCSD.pdb'))
 fg = fgRead(fullfile(TRKDIR, 'right_optic_radiation_PCSD.pdb'));
 fgWrite(fg, fullfile(TRKDIR,fg.name),'mat'); % load this into mrDiffusion for initial cleaning
 
@@ -84,7 +85,7 @@ feSavefig(h.tpfig,'verbose','yes', ...
 % 6. Plot the fiber group:
 % 6.1 as a full fibers
 h.fig = figure('name', 'OpticRadiation','color', 'k');
-t1 = niftiRead(fullfile(BASEDIR, 'T1w_acpc_dc_restore_1p25.nii.gz'));
+t1 = niftiRead(fullfile(BASEDIR, 't1.nii.gz'));
 slices      = {[6 0 0],[0 1 0],[0 0 -15]}; 
 hold on
 h.fig  = mbaDisplayBrainSlice(t1, slices{1});

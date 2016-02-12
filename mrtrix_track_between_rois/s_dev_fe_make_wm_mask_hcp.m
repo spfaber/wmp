@@ -3,11 +3,14 @@ function s_dev_fe_make_wm_mask_hcp
 % This script makes the white-matter mask used to track the connectomes in
 % Pestilli et al., LIFE paper.
 
-subjects = {'105115'};
+subjects = {'KW_96dirs_b2000_1p5iso'};
 SUBJECTS_DIR = '/N/dc2/projects/lifebid/2t1/anatomy';
 setenv('SUBJECTS_DIR', SUBJECTS_DIR);
 anatomypath = getenv('SUBJECTS_DIR');
-wmMaskFile = fullfile(SUBJECTS_DIR,subjects{1},'wm_mask_Sam.nii.gz');
+
+%savepath = '/N/dc2/projects/lifebid/HCP/Sam/matlab_code/wmp/mrtrix_track_between_rois/KW/mrtrix_results';
+
+wmMaskFile = fullfile(SUBJECTS_DIR,subjects{1},'wm_mask_SAM.nii.gz');
 
 % bOpen the segmentation file (the MGZ) save it to disk as a nifti (nii.gz)
 % make sure that the file is oriented with the mrDiffusion conventions

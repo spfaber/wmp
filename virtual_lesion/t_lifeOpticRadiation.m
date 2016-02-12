@@ -1,53 +1,58 @@
+%function t_lifeOpticRadiation
 % This script will load a full brain connectome and run life for a subject
 % in which the right optic radiation has been identified.
 % Franco Pestilli, Sam Faber, 2015-11-09
 
 % Set up the paths to the data
-HCPDIR = '/N/dc2/projects/lifebid/HCP/Sam/105115/';
-BASEDIR = '/N/dc2/projects/lifebid/HCP/Sam/matlab_code/pestillilab_projects/sam_faber/optic_radiation/mrtrix_track_between_rois/105115/';
-TRKDIR = fullfile(BASEDIR,'mrtrix_results');
-CODEDIR = '/N/dc2/projects/lifebid/HCP/Sam/matlab_code/pestillilab_projects/virtual_lesion';
-DWIDIR = '/N/dc2/projects/lifebid/HCP/Sam/105115/diffusion_data/dt6_b2000trilin';
+BASEDIR = '/N/dc2/projects/lifebid/HCP/Sam/matlab_code/wmp/mrtrix_track_between_rois/';
+CODEDIR = '/N/dc2/projects/lifebid/HCP/Sam/matlab_code/wmp/virtual_lesion/';
 
+feSub = {'115320','117122','118730','JW','KK'}; % 105115, 113619, 115320, 117122, 118730, pestilli, takemura, JW, KK
+for subjcount = 1:length(feSub);
+    subjectID=feSub{subjcount};
 
-%subjects = {...
-%    '105115', ...
-%    '110411', ...
-%    '111312', ...
-%    '113619', ...
-%    '115320', ...
-%    '117122', ...
-%    '118730', ...
-%    };
-
-%DWIDIR = fullfile(BASEDIR, subjects);
+SUBDIR = fullfile(BASEDIR, subjectID);
+TRKDIR = fullfile(BASEDIR, subjectID, 'mrtrix_results');
+SAVEDIR = fullfile(CODEDIR, subjectID);
+FESAVEDIR = fullfile(CODEDIR, subjectID, '/fe');
+SESAVEDIR = fullfile(CODEDIR, subjectID, '/se');
 
 %% Build the file names for the diffusion data, the anatomical MRI.
-dwiFile = fullfile(BASEDIR, 'dwi_data_b2000_aligned_trilin.nii.gz');
-t1File =  fullfile(BASEDIR,'T1w_acpc_dc_restore_1p25.nii.gz');
+dwiFile = fullfile(SUBDIR, 'dwi_data_b2000_aligned_trilin.nii.gz');
+t1File =  fullfile(SUBDIR,'t1.nii.gz');
 
 % Load the dt6 file
-dt = dtiLoadDt6( fullfile(DWIDIR,'dt6.mat') );
+%dt = dtiLoadDt6( fullfile(SUBDIR,'dt6.mat') );
 
 % Load the ORs
-fg1 = fgRead(fullfile(TRKDIR,'left_optic_radiation_PCSD_updated.mat'));
-fg2 = fgRead(fullfile(TRKDIR,'right_optic_radiation_PCSD_updated.mat'));
+fgl = fgRead(fullfile(TRKDIR,'left_optic_radiation_PCSD_updated.mat'));
+fgr = fgRead(fullfile(TRKDIR,'right_optic_radiation_PCSD_updated.mat'));
 
 % Clean the OR's
-[fg1Clean, fibersToKeep] = mbaComputeFibersOutliers(fg1, 3, 3); 
-[fg2Clean, fibersToKeep] = mbaComputeFibersOutliers(fg2, 3, 3);
+[fglClean, fibersToKeep] = mbaComputeFibersOutliers(fgl, 4, 4); 
+[fgrClean, fibersToKeep] = mbaComputeFibersOutliers(fgr, 4, 4);
+
+% % plot cleaned tract
+% h.fig = figure('name', 'OpticRadiation','color', 'k');
+% t1 = niftiRead(fullfile(BASEDIR, 't1.nii.gz'));
+% slices      = {[6 0 0],[0 1 0],[0 0 -15]}; 
+% hold on
+% h.fig  = mbaDisplayBrainSlice(t1, slices{1});
+% h.fig  = mbaDisplayBrainSlice(t1, slices{2});
+% h.fig  = mbaDisplayBrainSlice(t1, slices{3});
+% [h.fig, h.light] = mbaDisplayConnectome(fg1Clean.fibers, h.fig);
 
 % Load the whole brain connectome
-fg3 = fgRead(fullfile(HCPDIR,'fibers','dwi_data_b2000_aligned_trilin_csd_lmax10_dwi_data_b2000_aligned_trilin_brainmask_dwi_data_b2000_aligned_trilin_wm_prob-500000.pdb'));
+%fg2 = fgRead(fullfile(HCPDIR,'/fibers','run01_fliprot_aligned_trilin_csd_lmax10_run01_fliprot_aligned_trilin_brainmask_run01_fliprot_aligned_trilin_wm_prob-500000.pdb'));
+fgwb = fgRead(fullfile(TRKDIR, 'whole_brain_ORs_excluded.pdb'));
 
-% Merge cleaned ORs with connectome
-fg = fgMerge(fg1Clean, fg2Clean, 'OpticRadiationClean_merged_fullBrainConnectome.mat');
 
-% Merge Dan's VOFs as fg
-
+% Merge cleaned ORs with virtual connectome
+fglr   = fgMerge(fglClean, fgrClean, 'fglr_merged');
+fglrwb = fgMerge( fglr, fgwb, 'fglrwb_merged');
 
 % Write the merged fibergroups out in case we need them?
-fgWrite(fg,fullfile(CODEDIR,'/ORCleanVOF_merged_fullBrainConnectome.mat'));
+fgWrite(fglrwb,fullfile(SAVEDIR,'lrORClean_merged_wb_OR_excluded.mat'));
 
 % mbaDisplayConnectome(fg.fibers{randsample(1:500000,1000),figure}
 
@@ -56,11 +61,14 @@ fgWrite(fg,fullfile(CODEDIR,'/ORCleanVOF_merged_fullBrainConnectome.mat'));
 % We will analyze first the CSD-based probabilistic tractography
 % connectome.
 prob.tractography = 'Probabilistic';
-fgFileName    = fullfile(CODEDIR,'/ORCleanVOF_merged_fullBrainConnectome.mat');
+
+% Make a validation test
+fgFileName    = fglrwb; 
                 
 
 % The final connectome and data astructure will be saved with this name:
-feFileName    = 'ORCleanVOF_build_model_demo_CSD_PROB';
+feFileName    = 'lrORClean_merged_wb_OR_excluded_build_model_demo_CSD_PROB';
+savedir       = fullfile(CODEDIR, subjectID, '/fe');
 
 %% (1.1) Initialize the LiFE-BD model structure, 'fe' in the code below. 
 % This structure contains the forward model of diffusion based on the
@@ -68,70 +76,175 @@ feFileName    = 'ORCleanVOF_build_model_demo_CSD_PROB';
 % compute model accuracry, and perform statistical tests. You can type
 % help('feBuildModel') in the MatLab prompt for more information.
 
+
 N = 360; % Discretization parameter
-
-mycomputer = computer();
-release = version('-release');
-switch strcat(mycomputer,'_',release)
-        case {'GLNXA64_2015a','MACI64_2014b'}
-        fe = feConnectomeInit(dwiFile,fgFileName,feFileName,[],dwiFile,t1File,N,[1,0],0);
-        otherwise
-        sprintf('WARNING: currently LiFE is optimized for an efficient usage of memory \n using the Sparse Tucker Decomposition aproach (Caiafa&Pestilli, 2015) \n ONLY for Linux (MatlabR2015a) and MacOS (MatlabR2014b). \n If you have a different system or version you can still \n use the old version of LiFE (memory intensive). \n\n')
-        sprintf('\n Starting building big matrix M in OLD LiFE...\n')
-        fe = feConnectomeInit(dwiFile,fgFileName,feFileName,[],dwiFile,t1File,N,[1,0],1);
-end
-
+fe = feConnectomeInit(dwiFile,fgFileName,feFileName,savedir,dwiFile,t1File, N, [1,0],0);
+     
 %% (1.2) Fit the model. 
-% Hereafter we fit the forward model of tracrography using a least-squared
+% Hereafter we fit the forward model of tractography using a least-squared
 % method. The information generated by fitting the model (fiber weights
 % etc) is then installed in the LiFE-BD structure.
 
 fe = feSet(fe,'fit',feFitModel(feGet(fe,'model'),feGet(fe,'dsigdemeaned'),'bbnnls'));
 
-save(fullfile(CODEDIR,'/fe','fe_ORCleanVOFMergedFullBrain_CSD_PROB.mat'),'-struct','fe','-v7.3');
+keyboard
+% save fe structure
+save(fullfile(FESAVEDIR,'fe_lrORClean_merged_wb_OR_excluded_CSD_PROB.mat'),'-struct','fe','-v7.3'); 
 
-% %% (1.3) Extract the RMSE of the model on the fitted data set. 
-% % We now use the LiFE-BD structure and the fit to compute the error in each
-% % white-matter voxel spanned by the tractography model.
-% prob.rmse   = feGet(fe,'vox rmse');
-% 
-% %% (1.6) Extract the fitted weights for the fascicles. 
-% % The following line shows how to extract the weight assigned to each
-% % fascicle in the connectome.
-% prob.w      = feGet(fe,'fiber weights');
+end 
+
+%%%%%%%%% perform virtual lesion
+
+% Set up the paths to the data
+BASEDIR = '/N/dc2/projects/lifebid/HCP/Sam/matlab_code/wmp/mrtrix_track_between_rois/';
+CODEDIR = '/N/dc2/projects/lifebid/HCP/Sam/matlab_code/wmp/virtual_lesion/';
+
+virtSub = {'105115','113619','115320','117122','118730','pestilli','takemura,''JW','KK'}; % 105115, 113619, 115320, 117122, 118730, HT, FP, JW, KK
+
+for subjcount2 = 1:length(virtSub);
+    subjectID2 = virtSub{subjcount2};
+
+SUBDIR = fullfile(BASEDIR, subjectID2);
+TRKDIR = fullfile(BASEDIR, subjectID2, 'mrtrix_results');
+SAVEDIR = fullfile(CODEDIR, subjectID2);
+FESAVEDIR = fullfile(CODEDIR, subjectID2, '/fe');
+SESAVEDIR = fullfile(CODEDIR, subjectID2, '/se');
+
+   
+% load fe structure
+fe = load(fullfile(FESAVEDIR,'fe_lrORClean_merged_wb_OR_excluded_CSD_PROB.mat'));
+
+% Load the ORs
+fgl = fgRead(fullfile(TRKDIR,'left_optic_radiation_PCSD_updated.mat'));
+fgr = fgRead(fullfile(TRKDIR,'right_optic_radiation_PCSD_updated.mat'));
+
+% Clean the OR's
+[fglClean, fibersToKeep] = mbaComputeFibersOutliers(fgl, 4, 4); 
+[fgrClean, fibersToKeep] = mbaComputeFibersOutliers(fgr, 4, 4);
+
+% Save indices to the OR in the left and right Hemisphere
+OR.left  = (1:length(fglClean.fibers));
+OR.right = (length(fglClean.fibers)+1:length(fgrClean.fibers)+length(fglClean.fibers));
+
+% set up boolean variable inputs for virtual lesion function
+display.tract = false;
+display.distributions = true; 
+display.evidence = true; 
+
+% VL OR RIGHT
+[se, figRightOR, feLesion,  feNoLesion, newFascicleIndices, indicesFibersKept, commonCoords] = ...
+    feVirtualLesion(fe, OR.right, display);
 
 
-%% Prepare to create a virtual lesion of the ILF and OR
- 
-%addpath(genpath(fullfile('/N/dc2/projects/lifebid/HCP/Sam/matlab_code/')));
+% VL OR LEFT
+[se, figLeftOR, feLesion,  feNoLesion, newFascicleIndices, indicesFibersKept, commonCoords] = ...
+    feVirtualLesion(fe, OR.left, display);
 
-% lesion ILF
-% find indices of ILF and give to feVirtualLesion
 
-% lesion OR
-% give indices of OR to feVirtualLesion
+% Save figures
+feSavefig(figRightOR,'verbose','yes','figName','RightOR_SOE','figDir','FESAVEDIR');
+feSavefig(figLeftOR,'verbose','yes','figName','LeftOR_SOE','figDir','FESAVEDIR');
 
-% calculate strength of evidence for actual - predicted in both cases 
 
+% save se structure
+save(fullfile(SESAVEDIR,'se_lrORClean_merged_wb_OR_excluded_CSD_PROB.mat'),'-struct','se','-v7.3'); 
+
+% load se structure
+se = load(fullfile(SESAVEDIR,'se_lrORClean_merged_wb_OR_excluded_CSD_PROB.mat'));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Segment the fibers using AFQ
-%dtFile    = fullfile(BASEDIR,'dt6.mat');
-%wholeBrainConnectome = feGet(fe, 'fibers acpc'); % should this be the merged .mat file or the fe matrix?
+
+% IF /bin folders could not be copied into organized folder containing all
+% subjects (STN and HCP)
+
+% %STNSUB = {'FP_96dirs_b2000_1p5iso',...
+%           'HT_96dirs_b2000_1p5iso',...
+%           'JW_96dirs_b2000_1p5iso',...
+%           'KK_96dirs_b2000_1p5iso',...
+%           'KW_96dirs_b2000_1p5iso'};
+% 
+% HCPSUB = {'105115', '113619', '115320', '117122', '118730'};
+% 
+% for subjcount = 1:length([STNSUB HCPSUB]);
+%     subjectID=subjects{subjcount};
+%     
+% switch subjectID
+%     case STNSUB 
+%     STNDTIDIR = fullfile(STNBASEDTIDIR, STNSUB, 'dtiInit');
+%     dtFile    = fullfile(STNDTIDIR,'dt6.mat');
+%     switch HCPSUB
+%     HCPDTIDIR = fullfile(HCPBASEDTIDIR, HCPSUB, 'diffusion_data','dt6_b2000trilin');
+%     dtFile    = fullfile(HCPDTIDIR,'dt6.mat');
+% end
+
+dtFile = fullfile(BASEDIR,subjectID,'dt6.mat');
+
+wholeBrainConnectome = feGet(fe, 'fibers acpc'); 
 
 % Segment the fascicles using AFQ
-%[fascicles,classification,fg,fg_classified] = feAfqSegment(dtFile, wholeBrainConnectome);
+[fascicles,classification,fg,fg_classified] = feAfqSegment(dtFile, wholeBrainConnectome);
 
-% Load the fascicles
-% for iFas = 1:length(fascicles)
-%     fprintf('Identifying fascicles: %s...\n',classification.names{iFas})
-%     
-%     % Get the fibers for the current fascicle
-%     fascicles2keep = find(classification.index==iFas);
-%     
-% end    
-% 
-% % Virtual Lesion
-%   
-% [se(isbj,iFas), fig] = feVirtualLesion(fe, fascicles2keep, display,false);
+% Look inside classification.name, find the index of ILS (14??)
+ILF.right = (1:length(fg_classified(14).fibers))';
+ILF.left  = (1:length(fg_classified(13).fibers))';
+
+% Lesion them one at the time
+% VL ILF RIGHT
+[se, figRightILF, feLesion,  feNoLesion, newFascicleIndices, indicesFibersKept, commonCoords] = ...
+    feVirtualLesion(fe, ILF.right, display);
+% save fig
+feSavefig(figRightILF,'verbose','yes','figName','RightILF_SOE','figDir','FESAVEDIR');
+
+
+% VL ILF LEFT
+[se, figLeftILF, feLesion,  feNoLesion, newFascicleIndices, indicesFibersKept, commonCoords] = ...
+    feVirtualLesion(fe, ILF.left, display);
+% save fig
+feSavefig(figLeftILF,'verbose','yes','figName','LeftILF_SOE','figDir','FESAVEDIR');
+
+    
+% could use helper function for this...
+%save_my_lesions(fe,indices, name, dir) 
+
+% VL Left OR + ILF
+% get indices for right ILF and OR
+ILF_AND_OR.right = ([OR.right', ILF.right'])';
+
+% lesion right OR and ILF
+[se, figRightORILF, feLesion,  feNoLesion, newFascicleIndices, indicesFibersKept, commonCoords] = ...
+    feVirtualLesion(fe, ILF_AND_OR.right, display);
+feSavefig(figRightORILF,'verbose','yes','figName','RightOR_ILF_SOE','figDir','FESAVEDIR');
+
+% get indices for left ILF and OR
+ILF_AND_OR.left  = ([OR.left', ILF.left'])';
+
+% lesion right OR and ILF
+[se, figLeftORILF, feLesion,  feNoLesion, newFascicleIndices, indicesFibersKept, commonCoords] = ...
+    feVirtualLesion(fe, ILF_AND_OR.left, display);
+feSavefig(figLeftORILF,'verbose','yes','figName','LeftOR_ILF_SOE','figDir','FESAVEDIR');
+end
+
+% Across subject analysis
+% load all se strucures for subjects
+seSub = {'105115','113619','115320','117122','118730','pestilli','takemura,''JW','KK'};
+
+for subs = 1:length(seSub);
+    subID = seSub{subs};
+    SESAVEDIR = fullfile(CODEDIR, subID, '/se');
+    sprintf('fe_%s',subID) = load(fullfile(SESAVEDIR,'se_lrORClean_merged_wb_OR_excluded_CSD_PROB.mat'));
+mean(sprintfse.em);
+std(se.em);
+[H,P] = ttest(se.em, 0);
+% summary bar plot - MEAN + SEM across 5-7 subjects (1 for ILF, OR, and
+% ILF+OR, left and right)
+bar(6bars);
+
+% locl, helper function
+%function save_my_lesions(fe,indices, name, dir)
+%se = feVirtualLesion(fe,indices,display);
+%feSavefig(fig.h,name,dir);
+%save(fullfile(dir,name),'se')
+
+
 

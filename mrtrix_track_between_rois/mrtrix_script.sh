@@ -9,8 +9,11 @@
 ## has a module now
 ## export PATH=$PATH:/N/soft/rhel6/mrtrix/0.2.12_test/bin
 
-TOPDIR=/N/dc2/projects/lifebid/HCP/Sam/matlab_code/pestillilab_projects/sam_faber/optic_radiation/mrtrix_track_between_rois/105115
-OUTDIR=/N/dc2/projects/lifebid/HCP/Sam/matlab_code/pestillilab_projects/sam_faber/optic_radiation/mrtrix_track_between_rois/105115/mrtrix_results
+
+SUBJ=$1
+
+TOPDIR=/N/dc2/projects/lifebid/HCP/Sam/matlab_code/wmp/mrtrix_track_between_rois/$SUBJ
+OUTDIR=/N/dc2/projects/lifebid/HCP/Sam/matlab_code/wmp/mrtrix_track_between_rois/$SUBJ/mrtrix_results
 
 
 ## convert dwi's 
@@ -46,42 +49,38 @@ estimate_response $OUTDIR/dwi_data_b2000_aligned_trilin_dwi.mif $OUTDIR/dwi_data
 
 
 ## compute CSD 
-#csdeconv $OUTDIR/dwi_data_b2000_aligned_trilin_dwi.mif $OUTDIR/dwi_data_b2000_aligned_trilin_response.txt -lmax 10 -mask $OUTDIR/#dwi_data_b2000_aligned_trilin_brainmask.mif $OUTDIR/CSD10.mif
+csdeconv $OUTDIR/dwi_data_b2000_aligned_trilin_dwi.mif $OUTDIR/dwi_data_b2000_aligned_trilin_response.txt -lmax 10 -mask $OUTDIR/dwi_data_b2000_aligned_trilin_wm.mif $OUTDIR/CSD10.mif
 
 
 ## does CSD for creating fiber maps
-csdeconv $OUTDIR/dwi_data_b2000_aligned_trilin_dwi.mif -grad $TOPDIR/dwi_data_b2000_aligned_trilin.b $OUTDIR/dwi_data_b2000_aligned_trilin_response.txt -lmax 10 -mask $OUTDIR/dwi_data_b2000_aligned_trilin_brainmask.mif $OUTDIR/CSD10.mif
+csdeconv $OUTDIR/dwi_data_b2000_aligned_trilin_dwi.mif -grad $TOPDIR/dwi_data_b2000_aligned_trilin.b $OUTDIR/dwi_data_b2000_aligned_trilin_response.txt -lmax 10 -mask $OUTDIR/dwi_data_b2000_aligned_trilin_wm.mif $OUTDIR/CSD10.mif
 
 
 ## convert lh .nii ROIs to .mif
-mrconvert $TOPDIR/ROIs/lh_LGN2V1.nii.gz $OUTDIR/lh_LGN2V1.mif
 mrconvert $TOPDIR/ROIs/lh_LGN.nii.gz $OUTDIR/lh_LGN.mif
 mrconvert $TOPDIR/ROIs/lh_V1_label_smooth3mm.nii.gz $OUTDIR/lh_V1.mif
 
 
 ## merge ROIs for creating seed region
-#mradd $OUTDIR/lh_LGN.mif $OUTDIR/lh_V1.mif $OUTDIR/lh_LGN2V1.mif
+mradd $OUTDIR/lh_LGN.mif $OUTDIR/lh_V1.mif $OUTDIR/lh_LGN2V1.mif
 
 
 ## convert rh .nii ROIs to .mif
-mrconvert $TOPDIR/ROIs/rh_LGN2V1.nii.gz $OUTDIR/rh_LGN2V1.mif
 mrconvert $TOPDIR/ROIs/rh_LGN.nii.gz $OUTDIR/rh_LGN.mif
 mrconvert $TOPDIR/ROIs/rh_V1_label_smooth3mm.nii.gz $OUTDIR/rh_V1.mif
 
 
 ## merge ROIs for creating seed region
-#mradd $OUTDIR/rh_LGN.mif $OUTDIR/rh_V1.mif $OUTDIR/rh_LGN2V1.mif
+mradd $OUTDIR/rh_LGN.mif $OUTDIR/rh_V1.mif $OUTDIR/rh_LGN2V1.mif
 
 
 ## Perform multiple types of tracking between same ROIs 
 
-
 ## create a probabilistic lh tract between the two ROIs using CSD
-streamtrack -seed $OUTDIR/lh_LGN2V1.mif -mask $OUTDIR/dwi_data_b2000_aligned_trilin_brainmask.mif -grad $TOPDIR/dwi_data_b2000_aligned_trilin.b -include $OUTDIR/lh_V1.mif -include $OUTDIR/lh_LGN.mif SD_PROB $OUTDIR/CSD10.mif $OUTDIR/left_optic_radiation_PCSD.tck -number 20000 -maxnum 1000000
-
+streamtrack -seed $OUTDIR/lh_LGN2V1.mif -mask $OUTDIR/dwi_data_b2000_aligned_trilin_wm.mif -grad $TOPDIR/dwi_data_b2000_aligned_trilin.b -include $OUTDIR/lh_V1.mif -include $OUTDIR/lh_LGN.mif SD_PROB $OUTDIR/CSD10.mif $OUTDIR/left_optic_radiation_PCSD.tck -number 20000 -maxnum 20000000
 
 ## create a probabilistic rh tract between the two ROIs using CSD
-streamtrack -seed $OUTDIR/rh_LGN2V1.mif -mask $OUTDIR/dwi_data_b2000_aligned_trilin_brainmask.mif -grad $TOPDIR/dwi_data_b2000_aligned_trilin.b -include $OUTDIR/rh_V1.mif -include $OUTDIR/rh_LGN.mif SD_PROB $OUTDIR/CSD10.mif $OUTDIR/right_optic_radiation_PCSD.tck -number 20000 -maxnum 1000000
+streamtrack -seed $OUTDIR/rh_LGN2V1.mif -mask $OUTDIR/dwi_data_b2000_aligned_trilin_wm.mif -grad $TOPDIR/dwi_data_b2000_aligned_trilin.b -include $OUTDIR/rh_V1.mif -include $OUTDIR/rh_LGN.mif SD_PROB $OUTDIR/CSD10.mif $OUTDIR/right_optic_radiation_PCSD.tck -number 20000 -maxnum 20000000
 
 
 ## create a deterministic tract between the two ROIs using DT
