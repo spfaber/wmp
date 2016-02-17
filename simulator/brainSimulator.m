@@ -107,7 +107,10 @@ iso = (fe.life.diffusion_signal_img(:) -feGet(fe,'dsigdemeaned') );
 
 
 % Set iso to the median isotropic signal in every OR voxel 
-setIso = median(hist(iso)).*ones(size(iso));
+mu = 0;
+sd = 0.001; % Use these three types of noise: 0.001, 1, 0.01, 0.1
+iso = iso + (mu + sd .* randn(size(iso)));
+setIso = median(iso);
 
 
 % Generate predicted (demeaned) signal
