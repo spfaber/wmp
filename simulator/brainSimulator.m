@@ -55,7 +55,7 @@ disp('done');
 
 % save fe structure
 save(fullfile(saveDir,feFileName),'-struct','fe','-v7.3'); 
-fe = load(fullfile(saveDir,feFileName));
+fe = load(fullfile(saveDir,'fe',feFileName));
 
 
 % read in the diffusion nifti
@@ -128,7 +128,7 @@ setIso = median(iso).*ones(size(iso)); % to use this, you must change MRtrix
 
 % Add random noise to isotropic signal in every OR voxel
 mu = 0;
-sd = 500; % Use these three types of noise: 0.001, 1, 0.01, 0.1
+sd = 250; % Use these three types of noise: 0.001, 1, 0.01, 0.1
 setRandIso = iso + (mu + sd.*randn(size(iso)));
 
 
@@ -254,11 +254,14 @@ iso_sig = reshape(iso,size(coords,1), length(indexes));
 figure(1)
 plot(fullPredSetIso(1:20,1:10),'c');
 hold on
-plot(setRandIsoFull(1:20,1:10),'g');
+
+plot(fullPredSetRandIso(1:20,1:10),'g');
 hold on
+plot(iso_sig(1:20,1:10),'b');
+
 plot(fullPredOrigIso(1:20,1:10),'b');
 plot(fullOrigSig(1:20,1:10),'r');
-plot(iso_sig(1:20,1:10),'k');
+
 
 hold on 
 legend('Original Full Sig','Full Pred Sig Set Iso',...
