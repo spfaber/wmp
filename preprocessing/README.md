@@ -1,4 +1,4 @@
-## This text file summarizes the procedural pipeline for carrying out DTI preprocessing using FSL.
+## This text file summarizes the procedural pipeline for carrying out DWI preprocessing using FSL.
 
 ####  Pestilli Lab at Indiana University Bloomington
 ##### Written by Sam Faber and Jack Zhang
