@@ -11,11 +11,11 @@
 
 % Build the file names for the diffusion data, bvecs, bval, fiber group, noise distribution, and model. 
 subj = '105115';
-rootDir   = fullfile('/N/dc2/projects/lifebid/HCP/Sam/matlab_code/wmp/mrtrix_track_between_rois/',subj);
+rootDir   = fullfile('/N/dc2/projects/lifebid/HCP/Sam/',subj);
 saveDir   = fullfile('/N/dc2/projects/lifebid/HCP/Sam/matlab_code/wmp/simulator/',subj);
 TRKDIR = fullfile(saveDir, 'mrtrix_results');
 dwiFile   = fullfile(rootDir,'dwi_data_b2000_aligned_trilin.nii.gz');
-t1File    = fullfile(rootDir, 't1.nii.gz');
+t1File    = fullfile(rootDir,'anatomy','T1w_acpc_dc_restore_1p25.nii.gz');
 bvecsFile = fullfile(rootDir,'dwi_data_b2000_aligned_trilin.bvecs');
 bvalsFile = fullfile(rootDir,'dwi_data_b2000_aligned_trilin.bvals');
 bvecs     = dlmread(bvecsFile);
@@ -23,17 +23,26 @@ bvals     = dlmread(bvalsFile);
 
 
 % read in fiber group if cleaning needs to be done first
-fgr = fgRead(fullfile(rootDir,'mrtrix_results','right_optic_radiation_PCSD_updated.mat'));
+fgArcuate = fgRead(fullfile(saveDir,'fascicles','fg_right_arc_500000_segmented.pdb'));
+fgCortico = fgRead(fullfile(saveDir,'fascicles','fg_right_cort_500000_segmented.pdb'));
 
 
 % clean fibers or load in cleaned fiber group
 disp('Cleaning fibers...');
-[fgrClean, fibersToKeep] = mbaComputeFibersOutliers(fgr, 4, 4);
+[fgArcClean, fibersToKeep1] = mbaComputeFibersOutliers(fgArcuate, 3.5, 3.5);
 disp('done');
-fgWrite(fgrClean, fullfile(TRKDIR,strcat(fgrClean.name,'_cleaned')),'mat');
 
-fgFileName    = fgrClean;
-feFileName    = strcat('fe_rOR_simulator_',subj);
+disp('Cleaning fibers...');
+[fgCortClean, fibersToKeep2] = mbaComputeFibersOutliers(fgCortico, 3.5, 3.5);
+disp('done');
+
+fgArcCortClean = fgMerge(fgArcClean,fgCortClean);
+%fgWrite(fgArctCortClean);
+
+%fgWrite(fgrClean, fullfile(TRKDIR,strcat(fgrClean.name,'_cleaned')),'mat');
+
+fgFileName    = fgArcCortClean;
+feFileName    = strcat('fe_rArCort_simulator_',subj);
 savedir = saveDir;
 
 
@@ -54,28 +63,24 @@ disp('done');
 
 
 % save fe structure
-save(fullfile(saveDir,feFileName),'-struct','fe','-v7.3'); 
-fe = load(fullfile(saveDir,'fe',feFileName));
+save(fullfile(saveDir,'fe',feFileName),'-struct','fe','-v7.3'); 
 
-
+fe = load('fe_rOR_simulator_105115.mat');
 % read in the diffusion nifti
 nii = niftiRead(dwiFile);
-
 
 % rename diffusion file and set data to Nan everywhere (we only want signal
 % from our fiber group)
 niiOut = nii;
 
 
-% Get the coordinates of the nodes in each voxel of the VOI (fiber
-% group)
+% Get the coordinates of the nodes in each voxel of the connectome
 coords = fe.roi.coords;
 
 
 % Get the measured diffusion signal in the voxels of the fiber group
 % returns #bvecs X #voxels array
 dw_vals = feGet(fe,'dsiinvox',coords);   % dw signal in tract
-
 
 % Keep the bvals that are not zero (images that are diffusion weighted)
 % since this is the dimension of vals we get above for bvecs
@@ -137,6 +142,7 @@ pSig = feGet(fe,'pSig fiber');
 
 
 % Add the isotropic component of the original signal to the predicted signal
+% use feGet(fe, 'pSig full')
 fullPredOrigIso    = pSig+iso;
 fullPredSetRandIso = pSig+setRandIso;
 
@@ -164,7 +170,7 @@ niiSetRandIso.data = feReplaceImageValues(niiSetRandIso.data, fullPredSetRandIso
 % plot all data in same slice containing the OR to see difference
 map = 'bone';
 
-figure(1)
+figure(2)
 imagesc(niiOut.data(:,:,37))
 colormap(map)
 title('Original Diffusion Signal');
@@ -187,7 +193,7 @@ title('Full Predicted Signal w/ set Iso only in OR');
 
 % check WM data
 figure(5)
-imagesc(niiWM.data(:,:,37))
+imshow(niiWM.data(:,:,37))
 title('Fiber White Matter Mask');
 
 
@@ -198,10 +204,12 @@ title('Original Signal');
 
 
 % Make sure data type is correct and rename new nifti files to be used for tracking
+niiOut.data        = int16(niiOut.data);
 niiWM.data         = int16(niiWM.data);
 niiOrigIso.data    = int16(niiOrigIso.data);
 niiSetIso.data     = int16(niiSetIso.data);
 niiSetRandIso.data = int16(niiSetRandIso.data);
+niiOut.fname     = fullfile(saveDir,'diffusion',sprintf('measured_diff_sig_rOR_%s.nii.gz',subj));
 niiWM.fname      = fullfile(saveDir,'diffusion',sprintf('WM_mask_rOR_%s.nii.gz',subj));
 niiOrigIso.fname = fullfile(saveDir,'diffusion',sprintf('sim_orig_aniso_diff_rOR_%s.nii.gz',subj));
 niiSetIso.fname  = fullfile(saveDir,'diffusion',sprintf('sim_set_aniso_diff_rOR_%s.nii.gz',subj));
@@ -233,14 +241,15 @@ fgSet = fgRead(fullfile(TRKDIR, 'right_OR_sim_set_aniso_PCSD.pdb'));
 fgWrite(fgSet, fullfile(TRKDIR,fgSet.name),'mat'); 
 
 figure (1)
-for ii = 1:length(fgrClean.fibers);
-    plot3(fgrClean.fibers{ii}(1,:),fgrClean.fibers{ii}(2,:),fgrClean.fibers{ii}(3,:)); hold on
+for ii = 1:length(fgArcClean.fibers);
+    plot3(fgArcClean.fibers{ii}(1,:),fgArcClean.fibers{ii}(2,:),fgArcClean.fibers{ii}(3,:),'b'); hold on
 end
+hold on
 
-figure (2)
-for ii = 1:length(fgOrig.fibers);
-    plot3(fgOrig.fibers{ii}(1,:),fgOrig.fibers{ii}(2,:),fgOrig.fibers{ii}(3,:)); hold on
+for ii = 1:length(fgCortClean.fibers);
+    plot3(fgCortClean.fibers{ii}(1,:),fgCortClean.fibers{ii}(2,:),fgCortClean.fibers{ii}(3,:),'r'); hold on
 end
+view(90,0)
 
 figure (3)
 for ii = 1:length(fgSet.fibers);
@@ -266,3 +275,28 @@ plot(fullOrigSig(1:20,1:10),'r');
 hold on 
 legend('Original Full Sig','Full Pred Sig Set Iso',...
     'Full Pred Sig Orig Iso','Original Iso Sig');
+
+mrtrix_tck2pdb(fullfile(TRKDIR,'right_OR_sim_orig_aniso_PCSD.tck'),fullfile(TRKDIR,'right_OR_sim_orig_aniso_PCSD.pdb'))
+mrtrix_tck2pdb(fullfile(TRKDIR,'right_OR_sim_set_rand_aniso_PCSD.tck'),fullfile(TRKDIR,'right_OR_sim_set_rand_aniso_PCSD.pdb'))
+
+fgOrig = fgRead(fullfile(TRKDIR,'right_optic_radiation_PCSD_updated_cleaned.mat'));
+fgSimOrigIso = fgRead(fullfile(TRKDIR,'right_OR_sim_orig_aniso_PCSD.pdb'));
+fgSimSetRandISo = fgRead(fullfile(TRKDIR,'right_OR_sim_set_rand_aniso_PCSD.pdb'));
+
+figure (2)
+for ii = 1:length(fgOrig.fibers);
+    plot3(fgOrig.fibers{ii}(1,:),fgOrig.fibers{ii}(2,:),fgOrig.fibers{ii}(3,:),'g'); hold on
+end
+
+
+figure (3)
+for ii = 1:length(fgSimOrigIso.fibers);
+    plot3(fgSimOrigIso.fibers{ii}(1,:),fgSimOrigIso.fibers{ii}(2,:),fgSimOrigIso.fibers{ii}(3,:),'c'); hold on
+end
+view(90,0)
+
+figure (4)
+for ii = 1:length(fgSimSetRandISo.fibers);
+    plot3(fgSimSetRandISo.fibers{ii}(1,:),fgSimSetRandISo.fibers{ii}(2,:),fgSimSetRandISo.fibers{ii}(3,:),'y'); hold on
+end
+
