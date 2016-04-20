@@ -13,8 +13,8 @@
 subj = '105115';
 rootDir   = fullfile('/N/dc2/projects/lifebid/HCP/Sam/',subj);
 saveDir   = fullfile('/N/dc2/projects/lifebid/HCP/Sam/matlab_code/wmp/simulator/',subj);
-TRKDIR = fullfile(saveDir, 'mrtrix_results');
-dwiFile   = fullfile(rootDir,'dwi_data_b2000_aligned_trilin.nii.gz');
+TRKDIR = fullfile(saveDir, 'fascicles');
+dwiFile   = fullfile(rootDir,'diffusion_data','dwi_data_b2000_aligned_trilin.nii.gz');
 t1File    = fullfile(rootDir,'anatomy','T1w_acpc_dc_restore_1p25.nii.gz');
 bvecsFile = fullfile(rootDir,'dwi_data_b2000_aligned_trilin.bvecs');
 bvalsFile = fullfile(rootDir,'dwi_data_b2000_aligned_trilin.bvals');
@@ -23,26 +23,37 @@ bvals     = dlmread(bvalsFile);
 
 
 % read in fiber group if cleaning needs to be done first
-fgArcuate = fgRead(fullfile(saveDir,'fascicles','fg_right_arc_500000_segmented.pdb'));
-fgCortico = fgRead(fullfile(saveDir,'fascicles','fg_right_cort_500000_segmented.pdb'));
+fgArcuate = fgRead(fullfile(saveDir,'fascicles','fg_left_arc_500000_segmented.pdb'));
+fgCortico = fgRead(fullfile(saveDir,'fascicles','fg_left_cort_500000_segmented.pdb'));
 
 
 % clean fibers or load in cleaned fiber group
 disp('Cleaning fibers...');
 [fgArcClean, fibersToKeep1] = mbaComputeFibersOutliers(fgArcuate, 3.5, 3.5);
 disp('done');
+fgWrite(fgArcClean, fullfile(TRKDIR,strcat(fgArcClean.name,'_cleaned')),'mat');
+
+% plot fibers
+for ii = 1:length(fgArcClean.fibers);
+    plot3(fgArcClean.fibers{ii}(1,:),fgArcClean.fibers{ii}(2,:),fgArcClean.fibers{ii}(3,:),'r'); hold on
+end
+view(270,0)
 
 disp('Cleaning fibers...');
 [fgCortClean, fibersToKeep2] = mbaComputeFibersOutliers(fgCortico, 3.5, 3.5);
 disp('done');
+fgWrite(fgCortClean, fullfile(TRKDIR,strcat(fgCortClean.name,'_cleaned')),'mat');
+
+for ii = 1:length(fgCortClean.fibers);
+    plot3(fgCortClean.fibers{ii}(1,:),fgCortClean.fibers{ii}(2,:),fgCortClean.fibers{ii}(3,:),'r'); hold on
+end
+view(270,0)
 
 fgArcCortClean = fgMerge(fgArcClean,fgCortClean);
-%fgWrite(fgArctCortClean);
-
-%fgWrite(fgrClean, fullfile(TRKDIR,strcat(fgrClean.name,'_cleaned')),'mat');
+fgWrite(fgArcCortClean, fullfile(TRKDIR,'fglArcCortClean105115'),'mat');
 
 fgFileName    = fgArcCortClean;
-feFileName    = strcat('fe_rArCort_simulator_',subj);
+feFileName    = strcat('fe_leftArcCort_simulator_',subj);
 savedir = saveDir;
 
 
@@ -50,7 +61,7 @@ savedir = saveDir;
 % initialize LiFE model 'fe' structure
 disp('Building life model...');
 N = 360; % Discretization parameter
-fe = feConnectomeInit(dwiFile,fgFileName,feFileName,savedir,dwiFile,t1File,N,[1,0],0);
+fe = feConnectomeInit(dwiFile,fgFileName,feFileName,savedir,[],t1File,N,[1,0],0);
 disp('done');
 
 
@@ -65,6 +76,8 @@ disp('done');
 % save fe structure
 save(fullfile(saveDir,'fe',feFileName),'-struct','fe','-v7.3'); 
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 fe = load('fe_rOR_simulator_105115.mat');
 % read in the diffusion nifti
 nii = niftiRead(dwiFile);
@@ -146,7 +159,11 @@ pSig = feGet(fe,'pSig fiber');
 fullPredOrigIso    = pSig+iso;
 fullPredSetRandIso = pSig+setRandIso;
 
-
+% get new signal for just arc and just cort
+%new_weight_arc  = [new_weight_arc; zeros(size(new_weight_cort))];
+%new_weight_cort = [zeros(size(weights_arc)); new_weight_cort];
+%new_sig_arc     = M_times_w(fe.life.M, new_weight_arc);
+%new_sig_cort    = M_times_w(fe.life.M, new_weight_cort);
 
 % Add the standardized isotropic signal to the predicted signal
 fullPredSetIso     = pSig+setIso;
@@ -176,7 +193,7 @@ colormap(map)
 title('Original Diffusion Signal');
 
 figure(2)
-imshow(niiWM.data(:,:,37))
+imagesc(niiWM.data(:,:,37))
 colormap(map)
 title('Original Diffusion Signal only in OR');
 
@@ -241,13 +258,13 @@ fgSet = fgRead(fullfile(TRKDIR, 'right_OR_sim_set_aniso_PCSD.pdb'));
 fgWrite(fgSet, fullfile(TRKDIR,fgSet.name),'mat'); 
 
 figure (1)
-for ii = 1:length(fgArcClean.fibers);
-    plot3(fgArcClean.fibers{ii}(1,:),fgArcClean.fibers{ii}(2,:),fgArcClean.fibers{ii}(3,:),'b'); hold on
+for ii = 1:length(fgAF.fibers);
+    plot3(fgAF.fibers{ii}(1,:),fgAF.fibers{ii}(2,:),fgAF.fibers{ii}(3,:),'b'); hold on
 end
 hold on
 
-for ii = 1:length(fgCortClean.fibers);
-    plot3(fgCortClean.fibers{ii}(1,:),fgCortClean.fibers{ii}(2,:),fgCortClean.fibers{ii}(3,:),'r'); hold on
+for ii = 1:length(fgCST.fibers);
+    plot3(fgCST.fibers{ii}(1,:),fgCST.fibers{ii}(2,:),fgCST.fibers{ii}(3,:),'r'); hold on
 end
 view(90,0)
 

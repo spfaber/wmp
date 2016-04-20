@@ -3,8 +3,8 @@ function s_dev_fe_make_wm_mask_hcp
 % This script makes the white-matter mask used to track the connectomes in
 % Pestilli et al., LIFE paper.
 
-subjects = {'KW_96dirs_b2000_1p5iso'};
-SUBJECTS_DIR = '/N/dc2/projects/lifebid/2t1/anatomy';
+subjects = {''};
+SUBJECTS_DIR = '/N/dc2/projects/lifebid/HCP/Sam/';
 setenv('SUBJECTS_DIR', SUBJECTS_DIR);
 anatomypath = getenv('SUBJECTS_DIR');
 

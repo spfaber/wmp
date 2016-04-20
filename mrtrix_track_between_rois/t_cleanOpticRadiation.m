@@ -15,7 +15,8 @@ TRKDIR = fullfile(BASEDIR, 'mrtrix_results');
 % It was then written out as .mat using fgWrite so that it could be 
 % visualized and initially cleaned in mrDiffusion.
 % It was then saved (in mrDiffusion) as an updated version and then read in
-% again to be cleaned further.
+% again to be cleaned further
+
 
 mrtrix_tck2pdb(fullfile(TRKDIR,'whole_brain_ORs_excluded.tck'),fullfile(TRKDIR,'whole_brain_ORs_excluded.pdb'))
 mrtrix_tck2pdb(fullfile(TRKDIR,'left_optic_radiation_PCSD.tck'),fullfile(TRKDIR,'left_optic_radiation_PCSD.pdb'))
@@ -26,6 +27,27 @@ fgWrite(fg, fullfile(TRKDIR,fg.name),'mat'); % load this into mrDiffusion for in
 
 fg = fgRead(fullfile(TRKDIR, 'right_optic_radiation_PCSD.pdb'));
 fgWrite(fg, fullfile(TRKDIR,fg.name),'mat'); % load this into mrDiffusion for initial cleaning
+
+mrtrix_tck2pdb(fullfile(Dir,'rArcCort_dors2inf_sim_a0.99_105115.tck'),fullfile(Dir,'rArcCort_dors2inf_sim_a0.99_105115.pdb'))
+mrtrix_tck2pdb(fullfile(Dir,'rArcCort_vent2sup_sim_a0.99_105115.tck'),fullfile(Dir,'rArcCort_vent2sup_sim_a0.99_105115.pdb'))
+mrtrix_tck2pdb(fullfile(Dir,'rArc_sim_a0.99_105115.tck'),fullfile(Dir,'rArc_sim_a0.99_105115.pdb'))
+mrtrix_tck2pdb(fullfile(Dir,'rCort_sim_a0.99_105115.tck'),fullfile(Dir,'rCort_sim_a0.99_105115.pdb'))
+
+
+Dir ='/N/dc2/projects/lifebid/HCP/Sam/matlab_code/wmp/simulator/105115/mrtrix_results/ArcCort';
+fg1 = fgRead(fullfile(Dir, 'rArcCort_dors2inf_sim_a0.99_105115.pdb'));
+fgWrite(fg1, strcat(fg1.name,'.mat'));
+
+fg2 = fgRead(fullfile(Dir, 'rArcCort_vent2sup_sim_a0.99_105115.pdb'));
+fgWrite(fg2, fullfile(Dir, strcat(fg2.name,'.mat')));
+
+fg3 = fgRead(fullfile(Dir, 'rArc_sim_a0.99_105115.pdb'));
+fgWrite(fg3, fullfile(Dir, strcat(fg3.name,'.mat')));
+
+fg4 = fgRead(fullfile(Dir, 'rCort_sim_a0.99_105115.pdb'));
+fgWrite(fg4, fullfile(Dir, strcat(fg4.name,'.mat')));
+
+
 
 % Save initially cleaned file as _updated.mat and then read it in to be
 % cleaned
