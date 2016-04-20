@@ -16,7 +16,6 @@ _______________________________
 **Step 2:** Make sure that the .bvec and .bval have delimiters that are spaces only and are arranged in ROW (# of directions) X COL (# of dimensions).
 
 Once you have completed the fsl preprocessing, you may wish to make a dt6.mat from the fsl output. Before doing this using 'dtiMakeDt6FromFsl.m' first make sure that the T1 (which you will use for aligning your newly made B0) is ac-pc aligned. This can be done using *'feAutoACPCalign.m'* OR *'mrAnatSetNiftiXform.m'* from the VISTASOFT anatomy toolbox.
-       
-*NOTE: We will eventually add a topup operation for images acquired AP-PA and a step which reorients the bvecs according to the motion correction.*
+
        
           
